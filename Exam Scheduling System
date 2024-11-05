@@ -1,0 +1,264 @@
+package Exam_Schedule_Project;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import javax.swing.table.DefaultTableModel;
+
+class Exam {
+    private String subject;
+    private String[] rooms;
+    private String time;
+    private Date date;
+    private int session;
+
+    public Exam(String subject, String[] rooms, String time, Date date, int session) {
+        this.subject = subject;
+        this.rooms = rooms;
+        this.time = time;
+        this.date = date;
+        this.session = session;
+    }
+
+    public String getSubject() {
+        return subject;
+    }
+
+    public String[] getRooms() {
+        return rooms;
+    }
+
+    public String getTime() {
+        return time;
+    }
+
+    public Date getDate() {
+        return date;
+    }
+
+    public int getSession() {
+        return session;
+    }
+
+    public String displayExamDetails() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String roomDetails = "Rooms: " + String.join(", ", rooms);
+        return "Session: " + session + " | Subject: " + subject + " | " + roomDetails + " | Time: " + time + " | Date: " + sdf.format(date);
+    }
+}
+
+class ExamScheduler {
+    private Map<String, Exam> examSchedule = new HashMap<>();
+    private final String[] rooms = { "Room 101", "Room 102", "Room 103", "Room 104", "Room 105", "Room 106" };
+    private final String[][] sessionTimes = {
+        { "9:00 AM", "11:00 AM" }, // Session 1
+        { "12:00 PM", "2:00 PM" }, // Session 2
+        { "3:00 PM", "5:00 PM" },  // Session 3
+        { "6:00 PM", "8:00 PM" }   // Session 4
+    };
+
+    // Track availability of rooms per session and time slot
+    private Map<Integer, Boolean[]> roomAvailability; // Key: Session, Value: Boolean[] for each room
+
+    // Table model to display exam schedules
+    private DefaultTableModel tableModel;
+
+    public ExamScheduler(DefaultTableModel tableModel) {
+        this.tableModel = tableModel;
+        initializeRoomAvailability();
+    }
+
+    // Initialize room availability for each session
+    private void initializeRoomAvailability() {
+        roomAvailability = new HashMap<>();
+        for (int i = 0; i < 4; i++) {
+            roomAvailability.put(i, new Boolean[rooms.length]);
+            for (int j = 0; j < rooms.length; j++) {
+                roomAvailability.get(i)[j] = true; // Initially all rooms are available
+            }
+        }
+    }
+
+    // Check if any room is available for a specific session
+    private int getAvailableRoom(int session) {
+        for (int i = 0; i < rooms.length; i++) {
+            if (roomAvailability.get(session)[i]) {
+                return i; // Return the index of the available room
+            }
+        }
+        return -1; // No room available
+    }
+
+    public void assignExamSchedule(int studentStrength, ArrayList<String>[] subjectsPerSession) {
+        int roomIndex = 0;
+        long oneDay = 24 * 60 * 60 * 1000; // 1 day in milliseconds
+        Date startDate = new Date(); // Starting from the current date
+
+        for (int session = 0; session < 4; session++) {
+            ArrayList<String> subjects = subjectsPerSession[session];
+            int examCount = 0;
+            Date examDate = new Date(startDate.getTime());
+
+            for (String subject : subjects) {
+                if (examCount % 2 == 0 && examCount > 0) {
+                    // Move to the next day after 2 exams for the same session
+                    examDate = new Date(examDate.getTime() + oneDay);
+                }
+
+                // Try to assign rooms based on availability
+                int availableRoom = getAvailableRoom(session);
+                if (availableRoom == -1) {
+                    // No room available, find a room in a different session or timeslot
+                    for (int otherSession = 0; otherSession < 4; otherSession++) {
+                        if (otherSession != session) {
+                            availableRoom = getAvailableRoom(otherSession);
+                            if (availableRoom != -1) {
+                                session = otherSession; // Switch to a different session
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (availableRoom != -1) {
+                    // Assign rooms based on student strength
+                    String[] assignedRooms;
+                    if (studentStrength >= 100 && availableRoom + 1 < rooms.length) {
+                        assignedRooms = new String[] { rooms[availableRoom], rooms[(availableRoom + 1) % rooms.length] };
+                        roomAvailability.get(session)[availableRoom] = false;
+                        roomAvailability.get(session)[(availableRoom + 1) % rooms.length] = false;
+                    } else {
+                        assignedRooms = new String[] { rooms[availableRoom] };
+                        roomAvailability.get(session)[availableRoom] = false;
+                    }
+
+                    // Assign time slot based on session
+                    String timeSlot = sessionTimes[session][examCount % 2];
+
+                    // Create and store the exam schedule
+                    Exam exam = new Exam(subject, assignedRooms, timeSlot, examDate, session + 1);
+                    examSchedule.put(subject, exam);
+                    examCount++;
+
+                    // Add the exam details to the table model
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    tableModel.addRow(new Object[] { "Session " + (session + 1), subject, String.join(", ", assignedRooms), timeSlot, sdf.format(examDate) });
+                } else {
+                    // No room available in any timeslot
+                    JOptionPane.showMessageDialog(null, "No rooms available for scheduling " + subject + ".");
+                }
+            }
+        }
+    }
+}
+
+public class Exam_Schedule_Project extends JFrame {
+    private JTextField studentStrengthField;
+    private JTextField subjectField;
+    private JTextField sessionField;
+    private JTextArea subjectListArea;
+    private JTable examTable;
+    private ArrayList<String>[] subjectsPerSession; // Array of lists to hold subjects for each session
+    private ExamScheduler scheduler;
+    private DefaultTableModel tableModel;
+
+    public Exam_Schedule_Project() {
+        subjectsPerSession = new ArrayList[4]; // 4 sessions
+        for (int i = 0; i < 4; i++) {
+            subjectsPerSession[i] = new ArrayList<>();
+        }
+
+        // Table model to store exam schedule
+        tableModel = new DefaultTableModel(new String[] { "Session", "Subject", "Rooms", "Time", "Date" }, 0);
+        scheduler = new ExamScheduler(tableModel);
+
+        // Set up the frame
+        setTitle("University Exam Scheduling System");
+        setSize(800, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // Create the input panel
+        JPanel inputPanel = new JPanel(new GridLayout(5, 2));
+        inputPanel.setBorder(BorderFactory.createTitledBorder("Exam Scheduling"));
+
+        studentStrengthField = new JTextField();
+        subjectField = new JTextField();
+        sessionField = new JTextField();
+        subjectListArea = new JTextArea(5, 20);
+        subjectListArea.setEditable(false);
+
+        inputPanel.add(new JLabel("Student Strength:"));
+        inputPanel.add(studentStrengthField);
+        inputPanel.add(new JLabel("Subject:"));
+        inputPanel.add(subjectField);
+        inputPanel.add(new JLabel("Session (1-4):"));
+        inputPanel.add(sessionField);
+
+        JButton addSubjectButton = new JButton("Add Subject");
+        JButton scheduleButton = new JButton("Schedule Exams");
+
+        inputPanel.add(new JLabel("Subjects List:"));
+        inputPanel.add(new JScrollPane(subjectListArea));
+
+        // Button listeners
+        addSubjectButton.addActionListener(e -> {
+            String subject = subjectField.getText().trim();
+            int session;
+            try {
+                session = Integer.parseInt(sessionField.getText().trim()) - 1;
+                if (session >= 0 && session < 4 && !subject.isEmpty()) {
+                    subjectsPerSession[session].add(subject);
+                    subjectListArea.append("Session " + (session + 1) + ": " + subject + "\n");
+                    subjectField.setText("");
+                    sessionField.setText("");
+                } else {
+                    JOptionPane.showMessageDialog(null, "Please enter a valid subject and session (1-4).");
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(null, "Invalid session input.");
+            }
+        });
+
+        scheduleButton.addActionListener(e -> {
+            if (!studentStrengthField.getText().trim().isEmpty()) {
+                try {
+                    int studentStrength = Integer.parseInt(studentStrengthField.getText().trim());
+                    tableModel.setRowCount(0); // Clear the table
+                    scheduler.assignExamSchedule(studentStrength, subjectsPerSession);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(null, "Invalid input for student strength.");
+                }
+            } else {
+                JOptionPane.showMessageDialog(null, "Please enter student strength.");
+            }
+        });
+
+        // Add buttons to the input panel
+        inputPanel.add(addSubjectButton);
+        inputPanel.add(scheduleButton);
+
+        // Create the output panel (table for exam schedule)
+        examTable = new JTable(tableModel);
+        JPanel outputPanel = new JPanel(new BorderLayout());
+        outputPanel.setBorder(BorderFactory.createTitledBorder("Exam Schedule"));
+        outputPanel.add(new JScrollPane(examTable), BorderLayout.CENTER);
+
+        // Add input and output panels to the frame
+        add(inputPanel, BorderLayout.NORTH);
+        add(outputPanel, BorderLayout.CENTER);
+    }
+
+    public static void main(String[] args) {
+        // Run the GUI application
+        SwingUtilities.invokeLater(() -> {
+        	Exam_Schedule_Project gui = new Exam_Schedule_Project();
+            gui.setVisible(true);
+        });
+    }
+}
