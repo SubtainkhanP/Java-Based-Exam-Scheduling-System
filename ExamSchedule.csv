@@ -1,0 +1,13 @@
+Year,Subject,Rooms,Time,Date
+2021,PE,Room A (20)  Room E (70)  ,9AM - 12PM,2024-12-12
+2021,DIP,Room A (30)  Room E (70)  ,9AM - 12PM,2024-12-13
+2021,DWM,Room A (35)  Room E (70)  ,9AM - 12PM,2024-12-16
+2022,DSP,Room B (50)  Room D (5)  Room C (50)  ,9AM - 12PM,2024-12-12
+2022,MCSD,Room B (50)  Room C (50)  ,9AM - 12PM,2024-12-13
+2022,CN,Room B (50)  Room C (45)  ,9AM - 12PM,2024-12-16
+2023,OOP,Room A (35)  Room E (70)  ,12:30PM - 3:30PM,2024-12-12
+2023,BCEW,Room A (25)  Room E (70)  ,12:30PM - 3:30PM,2024-12-13
+2023,DS,Room A (30)  Room E (70)  ,12:30PM - 3:30PM,2024-12-16
+2024,BEE,Room B (50)  Room D (10)  Room C (50)  ,12:30PM - 3:30PM,2024-12-12
+2024,CAG,Room B (50)  Room C (50)  ,12:30PM - 3:30PM,2024-12-13
+2024,ICT,Room B (50)  Room C (46)  ,12:30PM - 3:30PM,2024-12-16
